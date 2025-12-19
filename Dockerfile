@@ -1,5 +1,5 @@
 # Use Playwright's official Docker image which includes browsers
-FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
 WORKDIR /app
 
