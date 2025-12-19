@@ -11,6 +11,10 @@ A RESTful API that captures page HTML, XHR/fetch requests, JavaScript files, and
 - Collects cookies, console messages, and page errors
 - Supports custom wait conditions (selectors, timeouts)
 - Optional API key authentication
+- **API Detection** (`/analyze`): Intelligently detects data sources:
+  - JSON/GraphQL/XML APIs with schema inference
+  - Next.js and Nuxt.js embedded data extraction
+  - Automatic analytics/tracking filtering
 
 ## Authentication
 
@@ -98,6 +102,97 @@ Simple GET endpoint for quick testing. Supports all parameters as query strings:
 - `waitUntil` (optional): `load`, `domcontentloaded`, or `networkidle`
 - `waitForSelector` (optional): CSS selector to wait for
 - `additionalWaitMs` (optional): Extra wait time in ms
+
+### POST /analyze
+
+Intelligently analyze a page to detect how it fetches data. Filters out analytics/tracking and identifies the primary data source.
+
+**Request Body:**
+```json
+{
+  "url": "https://example.com",
+  "timeout": 60000,
+  "networkIdleTimeout": 10000
+}
+```
+
+**Parameters:**
+- `url` (required): The URL to analyze
+- `timeout` (optional): Maximum time in ms (default: 60000)
+- `networkIdleTimeout` (optional): Network idle timeout in ms (default: 10000)
+- `waitForSelector` (optional): CSS selector to wait for
+- `additionalWaitMs` (optional): Extra wait time in ms
+
+**Response:**
+```json
+{
+  "success": true,
+  "url": "https://example.com/products",
+  "finalUrl": "https://example.com/products",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "loadTimeMs": 3500,
+  "networkIdleReached": true,
+
+  "primaryDataSource": "json-api",
+  "confidence": "high",
+
+  "detectedAPIs": [
+    {
+      "url": "https://api.example.com/v1/products",
+      "method": "GET",
+      "category": "json-api",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "name": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "sample": {
+        "products": [{ "id": 1, "name": "Widget" }]
+      },
+      "responseHeaders": { "content-type": "application/json" },
+      "requestHeaders": { ... }
+    }
+  ],
+
+  "embeddedData": null,
+  "title": "Products"
+}
+```
+
+**Data Source Categories:**
+| Category | Description |
+|----------|-------------|
+| `json-api` | Standard JSON REST APIs |
+| `graphql` | GraphQL endpoints |
+| `xml-api` | XML/SOAP APIs (converted to JSON) |
+| `html-api` | HTML fragment APIs (XHR returning HTML) |
+| `nextjs-embedded` | Next.js `__NEXT_DATA__` embedded JSON |
+| `nuxt-embedded` | Nuxt.js `__NUXT__` embedded data |
+| `ssr-only` | Server-side rendered only (no client APIs) |
+
+**Notes:**
+- Analytics/tracking requests are automatically filtered out
+- XML responses are converted to JSON
+- HTML is only included in response for `ssr-only` pages
+- JSON Schema is generated for each detected API
+
+### GET /analyze?url=...
+
+GET version of the analyze endpoint:
+
+```
+/analyze?url=https://example.com&networkIdleTimeout=15000
+```
 
 ### GET /health
 

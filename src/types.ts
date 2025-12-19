@@ -12,6 +12,17 @@ export const FetchRequestSchema = z.object({
 
 export type FetchRequest = z.infer<typeof FetchRequestSchema>;
 
+// Analyze request validation schema
+export const AnalyzeRequestSchema = z.object({
+  url: z.string().url('Invalid URL provided'),
+  timeout: z.number().min(1000).max(360000).optional().default(60000),
+  networkIdleTimeout: z.number().min(1000).max(360000).optional().default(10000),
+  waitForSelector: z.string().optional(),
+  additionalWaitMs: z.number().min(0).max(60000).optional().default(0),
+});
+
+export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
+
 // Captured network request
 export interface CapturedRequest {
   url: string;
