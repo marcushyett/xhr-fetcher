@@ -5,8 +5,41 @@ import { ZodError } from 'zod';
 
 const app = express();
 const port = process.env.PORT || 3000;
+const apiKey = process.env.API_KEY;
 
 app.use(express.json({ limit: '10mb' }));
+
+// API key authentication middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Skip auth for health check
+  if (req.path === '/health') {
+    return next();
+  }
+
+  // If no API_KEY is configured, allow all requests
+  if (!apiKey) {
+    return next();
+  }
+
+  // Check for API key in Authorization header (Bearer token) or x-api-key header
+  const authHeader = req.headers.authorization;
+  const xApiKey = req.headers['x-api-key'];
+
+  const providedKey = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : xApiKey;
+
+  if (providedKey !== apiKey) {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      details: 'Invalid or missing API key',
+    });
+    return;
+  }
+
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
@@ -125,6 +158,7 @@ app.use((err: Error, _req: Request, res: Response<ErrorResponse>, _next: NextFun
 app.listen(port, () => {
   console.log(`XHR Fetcher API running on port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`API key auth: ${apiKey ? 'enabled' : 'disabled'}`);
 
   // Pre-initialize browser in background
   browserManager.initialize().catch((err) => {

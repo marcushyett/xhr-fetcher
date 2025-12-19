@@ -10,6 +10,28 @@ A RESTful API that captures page HTML, XHR/fetch requests, JavaScript files, and
 - Records stylesheets and sub-documents
 - Collects cookies, console messages, and page errors
 - Supports custom wait conditions (selectors, timeouts)
+- Optional API key authentication
+
+## Authentication
+
+The API supports optional API key authentication. If the `API_KEY` environment variable is set, all requests (except `/health`) require authentication.
+
+**Providing the API key:**
+
+```bash
+# Using Authorization header (Bearer token)
+curl -H "Authorization: Bearer your-api-key" \
+  "https://your-app.fly.dev/fetch?url=https://example.com"
+
+# Using x-api-key header
+curl -H "x-api-key: your-api-key" \
+  "https://your-app.fly.dev/fetch?url=https://example.com"
+```
+
+**Behavior:**
+- If `API_KEY` is not set: All requests are allowed (open access)
+- If `API_KEY` is set: Requests without a valid key receive `401 Unauthorized`
+- The `/health` endpoint is always accessible (for load balancer checks)
 
 ## API Endpoints
 
@@ -128,9 +150,14 @@ curl "http://localhost:3000/fetch?url=https://example.com"
 # Create the app (only needed once)
 flyctl apps create xhr-fetcher
 
-# Set up the app
+# Set an API key for authentication (recommended)
+flyctl secrets set API_KEY=your-secret-api-key
+
+# Deploy the app
 flyctl deploy
 ```
+
+Without setting `API_KEY`, the API will be open to anyone. See [Authentication](#authentication) for details.
 
 ### GitHub Actions Deployment
 
